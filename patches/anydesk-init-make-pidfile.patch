@@ -1,0 +1,14 @@
+--- a/usr/share/anydesk/files/init/anydesk
++++ b/usr/share/anydesk/files/init/anydesk
+@@ -32,7 +32,10 @@
+ #	Function that starts the daemon/service.
+ #
+ d_start() {
+-	start-stop-daemon --start --quiet -b --pidfile $PIDFILE \
++	# --make-pidfile: the anydesk --service daemon does not write its own
++	# pidfile, so without this `status` always fails and `stop` cannot find
++	# the process. start-stop-daemon writes it after forking instead.
++	start-stop-daemon --start --quiet -b --make-pidfile --pidfile $PIDFILE \
+ 		--exec $DAEMON -- $DAEMON_OPTS
+ }
+ 

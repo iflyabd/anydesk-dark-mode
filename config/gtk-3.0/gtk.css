@@ -1,0 +1,54 @@
+/* Dark theme override for AnyDesk (light-only app).
+   Loaded only via the wrapper's private XDG_CONFIG_HOME, so other
+   GTK apps keep their own theme. USER priority (800) beats the
+   app's own provider, so these win where properties overlap. */
+
+window, .background { background-color: #202124; color: #e8eaed; }
+
+headerbar, .titlebar, .header-bar {
+    background-color: #2b2d31;
+    background-image: none;
+    color: #e8eaed;
+    border-color: #3a3d42;
+}
+
+notebook > header { background-color: #2b2d31; }
+notebook > header tab { background-color: #2b2d31; color: #b9bcc1; }
+notebook > header tab:checked { background-color: #3a3d42; color: #ffffff; }
+
+entry, spinbutton, searchentry {
+    background-color: #2f3136;
+    background-image: none;
+    color: #f1f3f4;
+    border-color: #4a4d52;
+}
+
+button {
+    background-color: #3a3d42;
+    background-image: none;
+    color: #f1f3f4;
+    border-color: #4a4d52;
+    text-shadow: none;
+}
+button:hover { background-color: #4a4d52; }
+button:active, button:checked { background-color: #5F88CF; color: #ffffff; }
+button:disabled { color: alpha(#f1f3f4, 0.45); background-color: #2f3136; }
+
+/* AnyDesk's own named palette -> dark equivalents */
+@define-color ad_color_grey #3a3d42;
+@define-color ad_color_lightgrey #35383d;
+@define-color ad_color_white #2f3136;
+@define-color ad_default_background_color #202124;
+@define-color ad_default_button_color #3a3d42;
+@define-color ad_disabled_button_color #2f3136;
+
+treeview, list, listbox, .view { background-color: #202124; color: #e8eaed; }
+treeview:selected, list row:selected { background-color: #3a3d42; color: #ffffff; }
+
+menu, popover, .popover { background-color: #2b2d31; color: #e8eaed; }
+tooltip { background-color: #3a3d42; color: #f1f3f4; }
+
+scrollbar { background-color: #202124; }
+scrollbar slider { background-color: #4a4d52; }
+
+separator { background-color: #3a3d42; }

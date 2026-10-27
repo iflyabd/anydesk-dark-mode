@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Apply the local AnyDesk binary patches (8.1.0 arm64).
+
+Two same-length, idempotent patches:
+
+1. "runs as root" gate
+   AnyDesk's GUI shows a modal "Please do not start AnyDesk as root user"
+   dialog before the main window when getuid() == 0. The gate is:
+
+       anydesk+0x39746c:  bl   getuid
+       anydesk+0x397470:  cbnz w0, <show_root_dialog>   ; 60 04 00 35
+
+   Patched into an unconditional branch that skips the dialog:
+
+       anydesk+0x397470:  b    anydesk+0x3974fc        ; 23 00 00 14
+
+2. forced GTK theme name
+   AnyDesk calls g_object_set(settings, "gtk-theme-name", "Adwaita-light")
+   during startup, so native GTK widgets ignore the system theme. The string is
+   rewritten to "Adwaita-dark" (same length), which keeps GTK-drawn menus and
+   dialogs consistent with the dark main window.
+
+IMPORTANT: the offsets above are specific to the official
+anydesk_8.1.0_arm64.deb (sha256
+ba8edcd17ac18824b7de34ae42c013dc859c43fad384bee4f6fb598d7d188dc2).
+Other versions or architectures will have different offsets. The script
+verifies the expected bytes before writing anything.
+
+The original binary is kept at /usr/bin/anydesk.orig. A package
+upgrade/reinstall replaces /usr/bin/anydesk and drops the patches; run this
+script again afterwards.
+
+The binary may be running ("Text file busy"); this script writes a temp copy
+and atomically renames it into place, so it works while running.
+"""
+import os
+import shutil
+import sys
+
+BIN = os.environ.get("ANYDESK_BIN", "/usr/bin/anydesk")
+ORIG = os.environ.get("ANYDESK_ORIG", BIN + ".orig")
+
+PATCHES = [
+    (0x397470, bytes.fromhex("60040035"), bytes.fromhex("23000014"),
+     "root dialog"),
+    (0x1C0D688, b"Adwaita-light\x00", b"Adwaita-dark\x00\x00",
+     "GTK theme"),
+]
+
+
+def main() -> int:
+    if not os.path.exists(BIN):
+        print(f"{BIN} not found", file=sys.stderr)
+        return 1
+
+    data = bytearray(open(BIN, "rb").read())
+    changed = []
+
+    for off, old, new, label in PATCHES:
+        cur = bytes(data[off:off + len(old)])
+        if cur == new:
+            print(f"{label}: already patched")
+            continue
+        if cur != old:
+            print(f"{label}: unexpected bytes at {off:#x}: {cur.hex()} "
+                  f"(wrong AnyDesk version? re-derive the patch)",
+                  file=sys.stderr)
+            return 2
+        data[off:off + len(new)] = new
+        changed.append((label, off, old, new))
+
+    if not changed:
+        return 0
+
+    if not os.path.exists(ORIG):
+        shutil.copy2(BIN, ORIG)
+        print(f"backup written: {ORIG}")
+
+    tmp = BIN + ".new"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    st = os.stat(BIN)
+    os.chown(tmp, st.st_uid, st.st_gid)
+    os.chmod(tmp, st.st_mode & 0o7777)
+    os.replace(tmp, BIN)   # atomic; works even if the binary is running
+
+    for label, off, old, new in changed:
+        print(f"{label}: patched {old.hex()} -> {new.hex()} at {off:#x}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

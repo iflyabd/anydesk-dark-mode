@@ -1,0 +1,11 @@
+# build output
+*.so
+*.o
+*.new
+
+# packages
+*.deb
+*.rpm
+
+# pristine binary backups produced by anydesk-repatch
+*.orig

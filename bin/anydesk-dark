@@ -1,0 +1,27 @@
+#!/bin/sh
+# Launch AnyDesk with the dark-mode shim and a private GTK config.
+#
+# Environment overrides:
+#   ANYDESK_BIN          AnyDesk executable            (default: anydesk)
+#   ANYDESK_DARK_SHIM    path to libanydesk-dark.so    (default: /usr/local/lib/...)
+#   ANYDESK_DARK_CONFIG  private XDG_CONFIG_HOME       (default: ~/.config/anydesk-dark)
+set -eu
+
+SHIM="${ANYDESK_DARK_SHIM:-/usr/local/lib/libanydesk-dark.so}"
+CONF="${ANYDESK_DARK_CONFIG:-$HOME/.config/anydesk-dark}"
+
+# AnyDesk is light-only and ignores the desktop theme. Give it a private GTK
+# config dir so the dark widget rules do not leak into other GTK applications.
+export XDG_CONFIG_HOME="$CONF"
+
+if [ -r "$SHIM" ]; then
+    case " ${LD_PRELOAD:-} " in
+        *"$SHIM"*) ;;
+        *) LD_PRELOAD="$SHIM${LD_PRELOAD:+ $LD_PRELOAD}" ;;
+    esac
+    export LD_PRELOAD
+else
+    echo "warning: $SHIM not found; starting AnyDesk without dark mode" >&2
+fi
+
+exec "${ANYDESK_BIN:-anydesk}" "$@"
